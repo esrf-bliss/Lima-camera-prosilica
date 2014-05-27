@@ -82,14 +82,17 @@ void SyncCtrlObj::setExpTime(double exp_time)
   DEB_MEMBER_FUNCT();
   DEB_PARAM() << DEB_VAR1(exp_time);
 
-  tPvErr error = PvAttrEnumSet(m_handle, "ExposureMode", "Manual");
-  if(error != ePvErrSuccess)
-    throw LIMA_HW_EXC(Error,"Can't set manual exposure");
+  if(m_cam->m_as_master)
+  {  
+    tPvErr error = PvAttrEnumSet(m_handle, "ExposureMode", "Manual");
+    if(error != ePvErrSuccess)
+      throw LIMA_HW_EXC(Error,"Can't set manual exposure");
 
-  tPvUint32 exposure_value = tPvUint32(exp_time * 1e6);
-  error = PvAttrUint32Set(m_handle,"ExposureValue",exposure_value);
-  if(error != ePvErrSuccess)
-    throw LIMA_HW_EXC(Error,"Can't set exposure time failed"); 
+    tPvUint32 exposure_value = tPvUint32(exp_time * 1e6);
+    error = PvAttrUint32Set(m_handle,"ExposureValue",exposure_value);
+    if(error != ePvErrSuccess)
+      throw LIMA_HW_EXC(Error,"Can't set exposure time failed"); 
+  }
 }
 
 void SyncCtrlObj::getExpTime(double &exp_time)
@@ -153,10 +156,16 @@ void SyncCtrlObj::startAcq()
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't start acquisition capture");
 
-      error = PvCommandRun(m_handle, "AcquisitionStart");
-      if(error)
-	throw LIMA_HW_EXC(Error,"Can't start acquisition");
-  
+      if(m_cam->m_as_master)
+      {		
+        error = PvCommandRun(m_handle, "AcquisitionStart");
+	DEB_TRACE() << "masterrrr";
+        if(error)
+        
+          throw LIMA_HW_EXC(Error,"Can't start acquisition");
+      }
+      else
+          DEB_TRACE() << "monitorrr";	
       if(m_buffer)
 	m_buffer->startAcq();
       else
@@ -234,3 +243,4 @@ void SyncCtrlObj::getStatus(HwInterface::StatusType& status)
     }
   DEB_RETURN() << DEB_VAR1(status);
 }
+

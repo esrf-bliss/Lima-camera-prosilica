@@ -38,6 +38,8 @@ namespace lima
       void 	startAcq();
       void	reset();
 
+      bool m_as_master;
+
     private:
       void 		_allocBuffer();
       static void 	_newFrameCBK(tPvFrame*);
@@ -62,3 +64,4 @@ namespace lima
   }
 }
 #endif
+

@@ -39,6 +39,14 @@ Camera::Camera(const char *ip_addr) :
     throw LIMA_HW_EXC(Error, "could not initialize Prosilica API");
 
   m_cam_connected = !PvCameraOpenByAddr(ip,ePvAccessMaster,&m_handle);
+  m_as_master = true;
+  //if not connected as master then try to connect as monitor	
+  if(!m_cam_connected) 
+  {
+     m_cam_connected = !PvCameraOpenByAddr(ip,ePvAccessMonitor,&m_handle);
+     m_as_master = false;
+  }
+
   if(!m_cam_connected)
     throw LIMA_HW_EXC(Error, "Camera not found!");
 
@@ -60,38 +68,41 @@ Camera::Camera(const char *ip_addr) :
 
   Bin tmp_bin(1, 1);
 
-  setBin(tmp_bin); // Bin has to be (1,1) for allowing maximum values as width and height
-
-  error = PvAttrUint32Set(m_handle,"Width",m_maxwidth);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set image width");
+  if(m_as_master)
+  {
+    setBin(tmp_bin); // Bin has to be (1,1) for allowing maximum values as width and height
+    error = PvAttrUint32Set(m_handle,"Width",m_maxwidth);
+    if(error)
+      throw LIMA_HW_EXC(Error,"Can't set image width");
   
-  error = PvAttrUint32Set(m_handle,"Height",m_maxheight);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set image height");
-  
-
-
+    error = PvAttrUint32Set(m_handle,"Height",m_maxheight);
+    if(error)
+      throw LIMA_HW_EXC(Error,"Can't set image height"); 
+  }
   VideoMode localVideoMode;
-  if(isMonochrome())
-    {
-      error = PvAttrEnumSet(m_handle, "PixelFormat", "Mono16");
-      localVideoMode = Y16;
-    }
-  else
-    {
-      error = PvAttrEnumSet(m_handle, "PixelFormat", "Bayer16");
-      localVideoMode = BAYER_RG16;
-    }
-
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set image format");
+  
+  if(m_as_master) 
+    if(isMonochrome())
+      {
+        error = PvAttrEnumSet(m_handle, "PixelFormat", "Mono16");
+        localVideoMode = Y16;
+      }
+    else
+      {
+        error = PvAttrEnumSet(m_handle, "PixelFormat", "Bayer16");
+        localVideoMode = BAYER_RG16;
+      }
+    if(error)
+      throw LIMA_HW_EXC(Error,"Can't set image format"); 
   
   m_video_mode = localVideoMode;
 
-  error = PvAttrEnumSet(m_handle, "AcquisitionMode", "Continuous");
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set acquisition mode to continuous");
+  if(m_as_master)
+  {
+    error = PvAttrEnumSet(m_handle, "AcquisitionMode", "Continuous");
+    if(error)
+      throw LIMA_HW_EXC(Error,"Can't set acquisition mode to continuous");
+  }
 }
 
 Camera::~Camera()
@@ -346,3 +357,4 @@ void Camera::getBin(Bin &hw_bin)
     
     DEB_RETURN() << DEB_VAR1(hw_bin);
 }
+

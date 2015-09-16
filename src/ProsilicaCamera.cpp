@@ -14,11 +14,12 @@ using namespace lima;
 using namespace lima::Prosilica;
 
 
-Camera::Camera(const char *ip_addr) :
+Camera::Camera(const char *ip_addr, bool mono_forced) :
   m_cam_connected(false),
   m_sync(NULL),
   m_video(NULL),
-  m_bin(1,1)
+  m_bin(1,1),
+  m_mono_forced(mono_forced)
 {
   DEB_CONSTRUCTOR();
   //Tango signal management is a real shit (workaround)
@@ -75,15 +76,21 @@ Camera::Camera(const char *ip_addr) :
   VideoMode localVideoMode;
   if(isMonochrome())
     {
-      error = PvAttrEnumSet(m_handle, "PixelFormat", "Mono16");
-      localVideoMode = Y16;
+      if (m_mono_forced)
+	{
+	  error = PvAttrEnumSet(m_handle, "PixelFormat", "Mono8");
+	  localVideoMode = Y8;
+	}else
+	{
+	  error = PvAttrEnumSet(m_handle, "PixelFormat", "Mono16");
+	  localVideoMode = Y16;
+	}
     }
   else
     {
       error = PvAttrEnumSet(m_handle, "PixelFormat", "Bayer16");
       localVideoMode = BAYER_RG16;
     }
-
   if(error)
     throw LIMA_HW_EXC(Error,"Can't set image format");
   
@@ -117,7 +124,7 @@ bool Camera::isMonochrome() const
 {
   DEB_MEMBER_FUNCT();
 
-  return !strcmp(m_sensor_type,"Mono");
+  return (!strcmp(m_sensor_type,"Mono") || m_mono_forced);
 }
 
 VideoMode Camera::getVideoMode() const

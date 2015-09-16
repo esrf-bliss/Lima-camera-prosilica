@@ -6,7 +6,7 @@ namespace Prosilica
 #include <ProsilicaCamera.h>
 %End
   public:
-    Camera(const char*);
+    Camera(const char*, bool mono_forced = false);
     ~Camera();
       
     bool isMonochrome() const;

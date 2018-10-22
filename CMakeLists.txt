@@ -56,7 +56,7 @@ if (CAMERA_MASTER_PROJECT)
 endif()
 
 # CMake additional macros
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${LIMA_CMAKE_INCLUDE_DIRS} ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${LIMA_CMAKE_INCLUDE_DIRS} ${CMAKE_MODULE_PATH})
 
 # Set version
 include(project_version)
@@ -89,7 +89,7 @@ if (CAMERA_ENABLE_PYTHON)
   find_package(NumPy REQUIRED)
 endif()
 
-find_package(Prosilica REQUIRED)
+find_package(PvAPI REQUIRED)
 
 file(GLOB_RECURSE PROSILICA_INCS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
 
@@ -124,11 +124,11 @@ target_include_directories(prosilica
 
 target_link_libraries(prosilica PUBLIC limacore)
 
-target_compile_definitions(prosilica PUBLIC ${PROSILICA_DEFINITIONS})
+target_compile_definitions(prosilica PUBLIC ${PVAPI_DEFINITIONS})
 
-target_include_directories(prosilica PUBLIC ${PROSILICA_INCLUDE_DIRS})
+target_include_directories(prosilica PUBLIC ${PVAPI_INCLUDE_DIRS})
 
-target_link_libraries(prosilica PUBLIC ${PROSILICA_LIBRARIES})
+target_link_libraries(prosilica PUBLIC ${PVAPI_LIBRARIES})
 
 if(WIN32)
   target_compile_definitions(prosilica

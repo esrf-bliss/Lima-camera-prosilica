@@ -17,7 +17,7 @@ namespace lima
       friend class VideoCtrlObj;
       DEB_CLASS_NAMESPC(DebModCamera,"Camera","Prosilica");
     public:
-      Camera(const char*,bool master = true, bool mono_forced = false);
+      Camera(const std::string& ip_addr,bool master = true, bool mono_forced = false);
       ~Camera();
       
       bool isMonochrome() const;

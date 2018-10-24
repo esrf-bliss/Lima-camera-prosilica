@@ -14,7 +14,7 @@ using namespace lima;
 using namespace lima::Prosilica;
 
 
-Camera::Camera(const char *ip_addr,bool master,
+Camera::Camera(const std::string& ip_addr,bool master,
                 bool mono_forced) :
   m_cam_connected(false),
   m_sync(NULL),
@@ -35,7 +35,7 @@ Camera::Camera(const char *ip_addr,bool master,
   m_frame[1].Context[0] = this;
   
   m_camera_name[0] = m_sensor_type[0] = '\0';
-  unsigned long ip = inet_addr(ip_addr);
+  unsigned long ip = inet_addr(ip_addr.c_str());
   tPvErr error = PvInitialize();
   if(error)
     throw LIMA_HW_EXC(Error, "could not initialize Prosilica API");

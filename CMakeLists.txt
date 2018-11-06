@@ -112,7 +112,7 @@ generate_export_header(prosilica)
 # Set version and output name
 set_target_properties(prosilica PROPERTIES
   OUTPUT_NAME "lima${PROJECT_NAME_LOWER}"
-  VERSION "${VERSION}"
+  VERSION "${PROJECT_VERSION}"
   SOVERSION "${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}")
 
 # Add dependencies

@@ -12,11 +12,11 @@ This is the LImA plugin for the Prosilica cameras.
 
 ### Camera python
 
-conda install -c esrf-bcu lima-camera-simulator
+conda install -c esrf-bcu lima-camera-prosilica
 
 ### Camera tango device server
 
-conda install -c esrf-bcu lima-camera-simulator-tango
+conda install -c esrf-bcu lima-camera-prosilica-tango
 
 # LImA
 

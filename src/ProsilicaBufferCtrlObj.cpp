@@ -86,19 +86,27 @@ void BufferCtrlObj::_newFrame(tPvFrame* aFrame)
     }
   
   ++bufferPt->m_acq_frame_nb;
-  
+
+  int next_frame_nb = bufferPt->m_acq_frame_nb  + 1;
+
+  tPvFrame* next_frame = &(bufferPt->m_frame[next_frame_nb % 2]);
+
   bool stopAcq = false;
   if(!requested_nb_frames || 
      bufferPt->m_acq_frame_nb < (requested_nb_frames - 1))
     {
       int buffer_nb, concat_frame_nb;
-      bufferPt->m_buffer_cb_mgr.acqFrameNb2BufferNb(bufferPt->m_acq_frame_nb,
+      bufferPt->m_buffer_cb_mgr.acqFrameNb2BufferNb(
+                            next_frame_nb,
 						    buffer_nb,
 						    concat_frame_nb);
-      aFrame->ImageBuffer = (char*)bufferPt->m_buffer_cb_mgr.getBufferPtr(buffer_nb,
+      next_frame->ImageBuffer = (char*)bufferPt->m_buffer_cb_mgr.getBufferPtr(
+                                      buffer_nb,
 									  concat_frame_nb);
       bufferPt->m_exposing = true;
-      bufferPt->m_status = PvCaptureQueueFrame(bufferPt->m_handle,aFrame,_newFrame);
+      bufferPt->m_status = PvCaptureQueueFrame(bufferPt->m_handle,
+                                               next_frame,
+                                               _newFrame);
     }
   else
     stopAcq = true;

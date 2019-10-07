@@ -85,9 +85,9 @@ class ProsilicaClass(PyTango.DeviceClass):
     class_property_list = {}
 
     device_property_list = {
-        'cam_ip_addresse':
+        'cam_ip_address':
         [PyTango.DevString,
-         "Camera ip addresse",[]],
+         "Camera ip address",[]],
         }
 
     cmd_list = {

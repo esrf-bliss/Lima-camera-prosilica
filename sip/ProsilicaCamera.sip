@@ -27,5 +27,7 @@ namespace Prosilica
       
     void 	startAcq();
     void	reset();
+  private:
+   Camera(const Prosilica::Camera&);
   };
 };

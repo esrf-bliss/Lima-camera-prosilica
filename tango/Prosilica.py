@@ -77,7 +77,7 @@ class Prosilica(PyTango.Device_4Impl):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
     def __getattr__(self,name) :
-        return AttrHelper.get_attr_4u(self, name, ProsilicaAcq)
+        return AttrHelper.get_attr_4u(self, name, _ProsilicaCam)
 
 
 class ProsilicaClass(PyTango.DeviceClass):
@@ -97,7 +97,34 @@ class ProsilicaClass(PyTango.DeviceClass):
         }
 
     attr_list = {
-        }
+        'gain_auto_max':
+        [[PyTango.DevULong,
+          PyTango.SCALAR,
+          PyTango.READ],
+         {
+             'unit': 'N/A',
+             'format': '',
+             'description': 'camera max auto gain',
+         }],
+        'gain':
+        [[PyTango.DevFloat,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE],
+         {
+             'unit': 'N/A',
+             'format': '',
+             'description': 'camera gain',
+         }],
+        'pv_gain':
+        [[PyTango.DevULong,
+          PyTango.SCALAR,
+          PyTango.READ_WRITE],
+         {
+             'unit': 'N/A',
+             'format': '',
+             'description': 'camera PvApi gain',
+         }],
+    }
 
     def __init__(self,name) :
         PyTango.DeviceClass.__init__(self,name)

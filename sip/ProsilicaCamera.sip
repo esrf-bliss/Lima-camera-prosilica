@@ -16,7 +16,12 @@ namespace Prosilica
     void checkBin(Bin& /In,Out/);
     void setBin(const Bin&);
     void getBin(Bin& /Out/);
-
+    void setGain(double);
+    void getGain(double& /Out/) const;
+    void setPvGain(unsigned long);
+    void getPvGain(unsigned long& /Out/) const;
+    void getGainAutoMax(unsigned long& /Out/) const;
+    
     VideoMode getVideoMode() const;
     void 	setVideoMode(VideoMode);
       

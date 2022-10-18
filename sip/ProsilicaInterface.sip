@@ -18,6 +18,8 @@ namespace Prosilica
 
     virtual int getNbAcquiredFrames();
     virtual int getNbHwAcquiredFrames();
+  private:
+    Interface(const Prosilica::Interface&);
   };
 
 };

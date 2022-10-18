@@ -33,6 +33,12 @@ namespace lima
       void setBin(const Bin&);
       void getBin(Bin&);
 
+      void setGain(double);
+      void getGain(double&) const;
+      void setPvGain(unsigned long);
+      void getPvGain(unsigned long&) const;
+      void getGainAutoMax(unsigned long&) const;
+
       void	getCameraName(std::string& name);
 	
       void 	startAcq();
@@ -51,6 +57,7 @@ namespace lima
       char		m_sensor_type[64];
       tPvUint32		m_ufirmware_maj, m_ufirmware_min;
       tPvUint32		m_maxwidth, m_maxheight;
+      tPvUint32		m_gainautomax;
       tPvUint32		m_uid;
       tPvFrame		m_frame[2];
       Bin               m_bin;

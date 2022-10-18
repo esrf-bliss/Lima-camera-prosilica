@@ -5,8 +5,6 @@
 using namespace lima;
 using namespace lima::Prosilica;
 
-const tPvUint32 MAX_GAIN = 29;
-
 VideoCtrlObj::VideoCtrlObj(Camera *cam) :
   m_cam(cam),
   m_handle(cam->getHandle()),
@@ -59,19 +57,14 @@ void VideoCtrlObj::getLive(bool &flag) const
   flag = m_live;
 }
 
-void VideoCtrlObj::getGain(double &aGain) const
-{
-  tPvUint32 localGain;
-  tPvErr error=PvAttrUint32Get(m_handle, "GainValue", &localGain);
-  aGain = double(localGain / MAX_GAIN);
-}
-
 void VideoCtrlObj::setGain(double aGain)
 {
-  tPvUint32 localGain = tPvUint32(aGain * MAX_GAIN);
-  tPvErr error=PvAttrUint32Set(m_handle, "GainValue", localGain);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set gain to asked value");
+  m_cam->setGain(aGain);
+}
+
+void VideoCtrlObj::getGain(double &aGain) const
+{
+  m_cam->getGain(aGain);
 }
 
 void VideoCtrlObj::checkBin(Bin& bin)

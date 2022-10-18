@@ -13,7 +13,6 @@
 using namespace lima;
 using namespace lima::Prosilica;
 
-
 Camera::Camera(const std::string& ip_addr,bool master,
                 bool mono_forced) :
   m_cam_connected(false),
@@ -61,7 +60,6 @@ Camera::Camera(const std::string& ip_addr,bool master,
 
   DEB_TRACE() << DEB_VAR2(m_maxwidth,m_maxheight);
 
-
   Bin tmp_bin(1, 1);
   if(master)
     {
@@ -75,6 +73,9 @@ Camera::Camera(const std::string& ip_addr,bool master,
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set image height");
 
+  PvAttrUint32Get(m_handle, "GainAutoMax", &m_gainautomax);
+
+  DEB_TRACE() << DEB_VAR1(m_gainautomax);
 
       VideoMode localVideoMode;
       if(isMonochrome())
@@ -325,6 +326,7 @@ void Camera::checkBin(Bin &hw_bin)
     hw_bin = Bin(x,y);
     DEB_RETURN() << DEB_VAR1(hw_bin);
 }
+
 //-----------------------------------------------------
 // @brief set the new binning mode
 //-----------------------------------------------------
@@ -360,3 +362,68 @@ void Camera::getBin(Bin &hw_bin)
     
     DEB_RETURN() << DEB_VAR1(hw_bin);
 }
+
+//-----------------------------------------------------
+// @brief set the new gain
+//-----------------------------------------------------
+void Camera::setGain(double aGain)
+{
+  tPvUint32 localGain = tPvUint32(aGain * m_gainautomax);
+  tPvErr error=PvAttrUint32Set(m_handle, "GainValue", localGain);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set gain to asked value");
+}
+
+//-----------------------------------------------------
+// @brief return the current gain
+//-----------------------------------------------------
+void Camera::getGain(double &aGain) const
+{
+  tPvUint32 localGain;
+  tPvErr error=PvAttrUint32Get(m_handle, "GainValue", &localGain);
+  aGain = double(localGain) / m_gainautomax;
+}
+
+//-----------------------------------------------------
+// @brief set the PvApi gain
+//-----------------------------------------------------
+void Camera::setPvGain(unsigned long pvGain)
+{
+  tPvErr error=PvAttrUint32Set(m_handle, "GainValue", pvGain);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set pvgain to asked value");
+}
+
+//-----------------------------------------------------
+// @brief return the PvApi gain
+//-----------------------------------------------------
+void Camera::getPvGain(unsigned long &pvGain) const
+{
+  tPvErr error=PvAttrUint32Get(m_handle, "GainValue", &pvGain);
+}
+
+//-----------------------------------------------------
+// @brief return the max auto gain value (PvApi gain value)
+//-----------------------------------------------------
+void Camera::getGainAutoMax(unsigned long &gainAutoMax) const
+{
+  gainAutoMax = m_gainautomax;
+}
+
+// //-----------------------------------------------------
+// // @brief set the new PvAPI gain
+// //-----------------------------------------------------
+// void Camera::setPvGain(tPvUint32 aPvGain)
+// {
+//   tPvErr error=PvAttrUint32Set(m_handle, "GainValue", aPvGain);
+//   if(error)
+//     throw LIMA_HW_EXC(Error,"Can't set gain to asked value");
+// }
+
+// //-----------------------------------------------------
+// // @brief return the current PvAPI gain
+// //-----------------------------------------------------
+// void Camera::getPvGain(tPvUint32 &aPvGain) const
+// {
+//   tPvErr error=PvAttrUint32Get(m_handle, "GainValue", &aPvGain);
+// }

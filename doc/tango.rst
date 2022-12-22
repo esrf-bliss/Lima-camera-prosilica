@@ -18,7 +18,7 @@ Attributes
 ----------
 
 ============================== ======= ======================= ============================================================
-Attribute name		       RW      Type                    Description
+Attribute name		       	   RW      Type                    Description
 ============================== ======= ======================= ============================================================
 gain						   rw	   DevFloat				   normalized video gain, value between 0 (=pvmin), no gain, and 1 (=pvmax)
 pv_gain_range				   ro      DevULong[pvmin, pvmax]  min and max allowed values of the PvApi gain

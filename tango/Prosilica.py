@@ -97,14 +97,15 @@ class ProsilicaClass(PyTango.DeviceClass):
         }
 
     attr_list = {
-        'gain_auto_max':
+        'pv_gain_range':
         [[PyTango.DevULong,
-          PyTango.SCALAR,
-          PyTango.READ],
+          PyTango.SPECTRUM,
+          PyTango.READ,
+          2],
          {
              'unit': 'N/A',
              'format': '',
-             'description': 'camera max auto gain',
+             'description': 'camera min/max gain value (PvApi)',
          }],
         'gain':
         [[PyTango.DevFloat,

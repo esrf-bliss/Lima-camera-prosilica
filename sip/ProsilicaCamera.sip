@@ -20,7 +20,7 @@ namespace Prosilica
     void getGain(double& /Out/) const;
     void setPvGain(unsigned long);
     void getPvGain(unsigned long& /Out/) const;
-    void getGainAutoMax(unsigned long& /Out/) const;
+    void getPvGainRange(unsigned long& /Out/, unsigned long& /Out/) const;
     
     VideoMode getVideoMode() const;
     void 	setVideoMode(VideoMode);

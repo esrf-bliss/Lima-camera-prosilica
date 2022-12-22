@@ -17,7 +17,13 @@ cam_ip_address	Yes		N/A		The camera's ip or hostname
 Attributes
 ----------
 
-This device has no attribute.
+============================== ======= ======================= ============================================================
+Attribute name		       	   RW      Type                    Description
+============================== ======= ======================= ============================================================
+gain						   rw	   DevFloat				   normalized video gain, value between 0 (=pvmin), no gain, and 1 (=pvmax)
+pv_gain_range				   ro      DevULong[pvmin, pvmax]  min and max allowed values of the PvApi gain
+pv_gain						   rw	   DevULong				   video gain, value in the interval [pvmin, pvmax]
+============================== ======= ======================= ============================================================
 
 Commands
 --------

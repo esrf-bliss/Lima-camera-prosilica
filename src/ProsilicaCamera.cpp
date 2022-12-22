@@ -73,9 +73,9 @@ Camera::Camera(const std::string& ip_addr,bool master,
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set image height");
 
-  PvAttrUint32Get(m_handle, "GainAutoMax", &m_gainautomax);
+  PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
 
-  DEB_TRACE() << DEB_VAR1(m_gainautomax);
+  DEB_TRACE() << DEB_VAR2(m_mingain, m_maxgain);
 
       VideoMode localVideoMode;
       if(isMonochrome())
@@ -368,7 +368,7 @@ void Camera::getBin(Bin &hw_bin)
 //-----------------------------------------------------
 void Camera::setGain(double aGain)
 {
-  tPvUint32 localGain = tPvUint32(aGain * m_gainautomax);
+  tPvUint32 localGain = tPvUint32(m_mingain + aGain * (m_maxgain - m_mingain));
   tPvErr error=PvAttrUint32Set(m_handle, "GainValue", localGain);
   if(error)
     throw LIMA_HW_EXC(Error,"Can't set gain to asked value");
@@ -381,7 +381,7 @@ void Camera::getGain(double &aGain) const
 {
   tPvUint32 localGain;
   tPvErr error=PvAttrUint32Get(m_handle, "GainValue", &localGain);
-  aGain = double(localGain) / m_gainautomax;
+  aGain = double(localGain - m_mingain) / (m_maxgain - m_mingain);
 }
 
 //-----------------------------------------------------
@@ -405,9 +405,10 @@ void Camera::getPvGain(unsigned long &pvGain) const
 //-----------------------------------------------------
 // @brief return the max auto gain value (PvApi gain value)
 //-----------------------------------------------------
-void Camera::getGainAutoMax(unsigned long &gainAutoMax) const
+void Camera::getPvGainRange(unsigned long &minGain, unsigned long &maxGain) const
 {
-  gainAutoMax = m_gainautomax;
+  minGain = m_mingain;
+  maxGain = m_maxgain;
 }
 
 // //-----------------------------------------------------

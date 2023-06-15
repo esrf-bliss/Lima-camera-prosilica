@@ -30,7 +30,7 @@ requirements:
     - python
     - {{ pin_compatible('sip', min_pin='x.x.x', max_pin='x') }}
     - {{ pin_compatible('lima-core', max_pin='x.x') }}
-    - pvapi-sdk 1.24
+    - pvapi-sdk 1.28
 
 test:
   requires:

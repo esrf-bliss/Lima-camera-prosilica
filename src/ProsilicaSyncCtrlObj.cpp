@@ -50,6 +50,7 @@ bool SyncCtrlObj::checkTrigMode(TrigMode trig_mode)
   switch(trig_mode)
     {
     case IntTrig:
+    case IntTrigMult:
     case ExtTrigMult:
       return true;
     default:
@@ -75,8 +76,17 @@ void SyncCtrlObj::setTrigMode(TrigMode trig_mode)
 	  if(error)
 	    throw LIMA_HW_EXC(Error,"Can't change Trigger start to a rising edge");
 	  break;
-	default:		// Software
+	case IntTrig:
 	  error = PvAttrEnumSet(m_handle, "FrameStartTriggerMode", "FixedRate");
+	  if(error)
+	    {
+	      std::stringstream message;
+	      message << "could not set trigger mode to FixedRate " << error;
+	      throw LIMA_HW_EXC(Error,message.str().c_str());
+	    }
+	  break;
+	case IntTrigMult:
+	  error = PvAttrEnumSet(m_handle, "FrameStartTriggerMode", "Software");
 	  if(error)
 	    {
 	      std::stringstream message;
@@ -182,22 +192,31 @@ void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 void SyncCtrlObj::startAcq()
 {
   DEB_MEMBER_FUNCT();
+  
+  tPvErr error;
   if(!m_started)
     {
-      tPvErr error = PvCaptureStart(m_handle);
+      error = PvCaptureStart(m_handle);
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't start acquisition capture");
+
+      if(m_buffer)
+	m_buffer->startAcq();
+      else
+	m_cam->startAcq();
+      
       if(m_cam->m_as_master)
 	{
 	  error = PvCommandRun(m_handle, "AcquisitionStart");
 	  if(error)
 	    throw LIMA_HW_EXC(Error,"Can't start acquisition");
-	}
-  
-      if(m_buffer)
-	m_buffer->startAcq();
-      else
-	m_cam->startAcq();
+	}  
+    }
+  if (m_trig_mode == IntTrigMult)
+    {
+      error = PvCommandRun(m_handle, "FrameStartTriggerSoftware");
+      if(error)
+	throw LIMA_HW_EXC(Error,"Can't start software trigger");
     }
   m_started = true;
 }
@@ -255,7 +274,10 @@ void SyncCtrlObj::getStatus(HwInterface::StatusType& status)
 	  else
 	    {
 	      status.acq = AcqRunning;
-	      status.det = exposing ? DetExposure : DetIdle;
+	      if (m_trig_mode == IntTrigMult)
+		status.det = exposing ? DetIdle : DetExposure;
+	      else
+		status.det = exposing ? DetExposure : DetIdle;
 	    }
 	}
       else			// video mode, don't need to be precise

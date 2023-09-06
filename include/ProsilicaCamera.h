@@ -59,6 +59,7 @@ namespace lima
       tPvUint32		m_maxwidth, m_maxheight;
       tPvUint32		m_maxgain;
       tPvUint32		m_mingain;
+      
       tPvUint32		m_uid;
       tPvFrame		m_frame[2];
       Bin               m_bin;

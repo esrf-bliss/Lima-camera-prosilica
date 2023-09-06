@@ -54,6 +54,7 @@ Camera::Camera(const std::string& ip_addr,bool master,
 		sizeof(m_sensor_type), &psize);
 
   DEB_TRACE() << DEB_VAR3(m_camera_name,m_sensor_type,m_uid);
+  DEB_TRACE() << DEB_VAR2(m_ufirmware_maj, m_ufirmware_min);
 
   PvAttrUint32Get(m_handle, "SensorWidth", &m_maxwidth);
   PvAttrUint32Get(m_handle, "SensorHeight", &m_maxheight);
@@ -98,7 +99,7 @@ Camera::Camera(const std::string& ip_addr,bool master,
 	throw LIMA_HW_EXC(Error,"Can't set image format");
   
       m_video_mode = localVideoMode;
-
+      
       error = PvAttrEnumSet(m_handle, "AcquisitionMode", "Continuous");
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set acquisition mode to continuous");
@@ -107,6 +108,13 @@ Camera::Camera(const std::string& ip_addr,bool master,
     m_video_mode = Y8;
   
   m_as_master = master;
+
+  // NOTE: This call sets camera PacketSize to largest sized test packet, up to 8228, that doesn't fail
+  // on network card. Some MS VISTA network card drivers become unresponsive if test packet fails. 
+  // Use PvUint32Set(handle, "PacketSize", MaxAllowablePacketSize) instead. See network card properties
+  // for max allowable PacketSize/MTU/JumboFrameSize. 
+  if((error = PvCaptureAdjustPacketSize(m_handle,8228)) != ePvErrSuccess)
+	throw LIMA_HW_EXC(Error,"PvCaptureAdjustPacketSize failed and error code  = "+ error);
 }
 
 Camera::~Camera()

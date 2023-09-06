@@ -12,6 +12,9 @@ BufferCtrlObj::BufferCtrlObj(Camera *cam) :
 {
   DEB_CONSTRUCTOR();
 
+  //IMPORTANT: Initialize camera structure. See tPvFrame in PvApi.h for more info.
+  memset(&(m_frame[0]),0,sizeof(tPvFrame));
+  memset(&(m_frame[1]),0,sizeof(tPvFrame));
   m_frame[0].Context[0] = this;
   m_frame[1].Context[0] = this;
 }
@@ -23,16 +26,24 @@ void BufferCtrlObj::prepareAcq()
   m_frame[0].ImageBufferSize = m_frame[1].ImageBufferSize = dim.getMemSize();
   
   m_acq_frame_nb = -1;
-  int buffer_nb,concat_frame_nb;
-  m_buffer_cb_mgr.acqFrameNb2BufferNb(0,buffer_nb,concat_frame_nb);
   tPvFrame& frame0 = m_frame[0];
-  frame0.ImageBuffer = (char*) m_buffer_cb_mgr.getBufferPtr(buffer_nb,
-							    concat_frame_nb);
-
-  m_buffer_cb_mgr.acqFrameNb2BufferNb(1,buffer_nb,concat_frame_nb);
-  tPvFrame& frame1 = m_frame[1];
-  frame1.ImageBuffer = (char*) m_buffer_cb_mgr.getBufferPtr(buffer_nb,
-							    concat_frame_nb);
+  frame0.ImageBuffer = (char*) m_buffer_cb_mgr.getFrameBufferPtr(0);
+  
+  int requested_nb_frames;
+  m_sync->getNbFrames(requested_nb_frames);
+  if(!requested_nb_frames || requested_nb_frames > 1)
+  {
+    tPvFrame& frame1 = m_frame[1];
+    frame1.ImageBuffer = (char*) m_buffer_cb_mgr.getFrameBufferPtr(1);
+  }
+  unsigned long FrameSize = 0;
+  if((PvAttrUint32Get(m_handle,"TotalBytesPerFrame",&FrameSize)) == ePvErrSuccess)
+    {
+      DEB_TRACE() << "Camera TotalBytesPerFrame: "<< FrameSize;
+      DEB_TRACE() << "Lima Frame size: " << dim.getMemSize();
+      DEB_TRACE() << "Lima buffer 0 ptr address: " << frame0.ImageBuffer;
+      DEB_TRACE() << "m_frame[0] ptr address: " << &frame0;
+    }
 }
 
 void BufferCtrlObj::startAcq()
@@ -41,16 +52,8 @@ void BufferCtrlObj::startAcq()
 
   m_exposing = true;
   tPvFrame& frame = m_frame[0];
-  m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
   
-/**  int requested_nb_frames;
-  m_sync->getNbFrames(requested_nb_frames);
-  if(!requested_nb_frames || requested_nb_frames > 1)
-    {
-      tPvFrame& frame = m_frame[1];
-      m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
-    }
-*/
+  m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
 }
 
 void BufferCtrlObj::_newFrame(tPvFrame* aFrame)

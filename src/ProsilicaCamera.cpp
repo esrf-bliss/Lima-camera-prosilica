@@ -73,9 +73,9 @@ Camera::Camera(const std::string& ip_addr,bool master,
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set image height");
 
-  PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
+      PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
 
-  DEB_TRACE() << DEB_VAR2(m_mingain, m_maxgain);
+      DEB_TRACE() << DEB_VAR2(m_mingain, m_maxgain);
 
       VideoMode localVideoMode;
       if(isMonochrome())

@@ -50,6 +50,12 @@ namespace lima
       BufferCtrlObj*	m_buffer;
       int		m_nb_frames;
       bool		m_started;
+      tPvFloat32	m_minexposure;
+      tPvFloat32	m_maxexposure;
+      tPvFloat32	m_minframerate;
+      tPvFloat32	m_maxframerate;
+      tPvFloat32	m_exposure;
+      tPvFloat32	m_latency;
     };
 
   } // namespace Prosilica

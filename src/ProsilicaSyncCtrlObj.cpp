@@ -17,6 +17,24 @@ SyncCtrlObj::SyncCtrlObj(Camera *cam,BufferCtrlObj *buffer) :
   DEB_CONSTRUCTOR();
   m_access_mode = cam->m_as_master ? 
     HwSyncCtrlObj::Master : HwSyncCtrlObj::Monitor;
+  
+  tPvErr error = PvAttrRangeFloat32(m_handle, "FrameRate", &m_minframerate, &m_maxframerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  FramRate range");
+  DEB_TRACE() << "Frame Rate Range :" << m_minframerate << " - " << m_maxframerate << " Hz";
+  
+  tPvUint32 min_exp, max_exp;
+  error = PvAttrRangeUint32(m_handle, "ExposureValue", &min_exp, &max_exp);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  Exposure range");
+  DEB_TRACE() << "Exposure Range :" << min_exp << " - " << max_exp << " usec.";
+  m_minexposure = min_exp/1e6;
+  m_maxexposure = max_exp/1e6;
+  
+  m_latency = 1/m_maxframerate;
+  error = PvAttrFloat32Set(m_handle, "FrameRate", m_maxframerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set FramRate to max");
 }
 
 SyncCtrlObj::~SyncCtrlObj()
@@ -90,7 +108,17 @@ void SyncCtrlObj::setExpTime(double exp_time)
   tPvUint32 exposure_value = tPvUint32(exp_time * 1e6);
   error = PvAttrUint32Set(m_handle,"ExposureValue",exposure_value);
   if(error != ePvErrSuccess)
-    throw LIMA_HW_EXC(Error,"Can't set exposure time failed"); 
+    throw LIMA_HW_EXC(Error,"Can't set exposure time failed");
+
+  tPvFloat32 frame_rate = 1/( exp_time + m_latency);
+  DEB_TRACE() << frame_rate;
+  if (frame_rate < m_minframerate) frame_rate = m_minframerate;
+  else if (frame_rate > m_maxframerate) frame_rate = m_maxframerate;
+  
+  error = PvAttrFloat32Set(m_handle, "FrameRate", frame_rate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set FramRate");
+  m_exposure = exp_time;
 }
 
 void SyncCtrlObj::getExpTime(double &exp_time)
@@ -101,17 +129,19 @@ void SyncCtrlObj::getExpTime(double &exp_time)
   PvAttrUint32Get(m_handle, "ExposureValue", &exposure_value);
   exp_time = exposure_value / 1e6;
 
+  // update frame rate using expo_time + latency
+  
   DEB_RETURN() << DEB_VAR1(exp_time);
 }
 
 void SyncCtrlObj::setLatTime(double  lat_time)
 {
-  //No latency managed
+  m_latency = lat_time;
 }
 
 void SyncCtrlObj::getLatTime(double& lat_time)
 {
-  lat_time = 0.;		// Don't know
+  lat_time = m_latency;		// Don't know
 }
 
 void SyncCtrlObj::setNbFrames(int  nb_frames)
@@ -139,10 +169,14 @@ void SyncCtrlObj::getNbHwFrames(int& nb_frames)
 
 void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 {
-  valid_ranges.min_exp_time = 1e-6; // Don't know
-  valid_ranges.max_exp_time = 60.; // Don't know
-  valid_ranges.min_lat_time = 0.; // Don't know
-  valid_ranges.max_lat_time = 0.; // Don't know
+  // period = exposure + latency
+  // framerate = 1 / (exposure + latency)
+  // min_latency = (1 / max_framerate) -  min_exposure
+  // max_latency = (1 / min_framerate) -  min_exposure
+  valid_ranges.min_exp_time = m_minexposure;
+  valid_ranges.max_exp_time = m_maxexposure;
+  valid_ranges.min_lat_time = 1/m_maxframerate ;
+  valid_ranges.max_lat_time = 1/m_minframerate - m_minexposure;
 }
 
 void SyncCtrlObj::startAcq()

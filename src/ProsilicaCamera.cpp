@@ -1,3 +1,27 @@
+//###########################################################################
+// This file is part of LImA, a Library for Image Acquisition
+//
+// Copyright (C) : 2009-2023
+// European Synchrotron Radiation Facility
+// CS40220 38043 Grenoble Cedex 9
+// FRANCE
+//
+// Contact: lima@esrf.fr
+//
+// This is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, see <http://www.gnu.org/licenses/>.
+//###########################################################################
+
 #include <signal.h>
 #include <cstdlib>
 #include <sys/socket.h>
@@ -54,6 +78,7 @@ Camera::Camera(const std::string& ip_addr,bool master,
 		sizeof(m_sensor_type), &psize);
 
   DEB_TRACE() << DEB_VAR3(m_camera_name,m_sensor_type,m_uid);
+  DEB_TRACE() << DEB_VAR2(m_ufirmware_maj, m_ufirmware_min);
 
   PvAttrUint32Get(m_handle, "SensorWidth", &m_maxwidth);
   PvAttrUint32Get(m_handle, "SensorHeight", &m_maxheight);
@@ -73,9 +98,9 @@ Camera::Camera(const std::string& ip_addr,bool master,
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set image height");
 
-  PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
+      PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
 
-  DEB_TRACE() << DEB_VAR2(m_mingain, m_maxgain);
+      DEB_TRACE() << DEB_VAR2(m_mingain, m_maxgain);
 
       VideoMode localVideoMode;
       if(isMonochrome())
@@ -98,7 +123,7 @@ Camera::Camera(const std::string& ip_addr,bool master,
 	throw LIMA_HW_EXC(Error,"Can't set image format");
   
       m_video_mode = localVideoMode;
-
+      
       error = PvAttrEnumSet(m_handle, "AcquisitionMode", "Continuous");
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't set acquisition mode to continuous");
@@ -107,6 +132,13 @@ Camera::Camera(const std::string& ip_addr,bool master,
     m_video_mode = Y8;
   
   m_as_master = master;
+
+  // NOTE: This call sets camera PacketSize to largest sized test packet, up to 8228, that doesn't fail
+  // on network card. Some MS VISTA network card drivers become unresponsive if test packet fails. 
+  // Use PvUint32Set(handle, "PacketSize", MaxAllowablePacketSize) instead. See network card properties
+  // for max allowable PacketSize/MTU/JumboFrameSize. 
+  if((error = PvCaptureAdjustPacketSize(m_handle,8228)) != ePvErrSuccess)
+	throw LIMA_HW_EXC(Error,"PvCaptureAdjustPacketSize failed and error code  = "+ error);
 }
 
 Camera::~Camera()

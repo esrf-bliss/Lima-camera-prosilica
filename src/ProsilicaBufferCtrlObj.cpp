@@ -1,3 +1,27 @@
+//###########################################################################
+// This file is part of LImA, a Library for Image Acquisition
+//
+// Copyright (C) : 2009-2023
+// European Synchrotron Radiation Facility
+// CS40220 38043 Grenoble Cedex 9
+// FRANCE
+//
+// Contact: lima@esrf.fr
+//
+// This is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, see <http://www.gnu.org/licenses/>.
+//###########################################################################
+
 #include "ProsilicaBufferCtrlObj.h"
 #include "ProsilicaSyncCtrlObj.h"
 #include "ProsilicaCamera.h"
@@ -12,6 +36,9 @@ BufferCtrlObj::BufferCtrlObj(Camera *cam) :
 {
   DEB_CONSTRUCTOR();
 
+  //IMPORTANT: Initialize camera structure. See tPvFrame in PvApi.h for more info.
+  memset(&(m_frame[0]),0,sizeof(tPvFrame));
+  memset(&(m_frame[1]),0,sizeof(tPvFrame));
   m_frame[0].Context[0] = this;
   m_frame[1].Context[0] = this;
 }
@@ -23,16 +50,24 @@ void BufferCtrlObj::prepareAcq()
   m_frame[0].ImageBufferSize = m_frame[1].ImageBufferSize = dim.getMemSize();
   
   m_acq_frame_nb = -1;
-  int buffer_nb,concat_frame_nb;
-  m_buffer_cb_mgr.acqFrameNb2BufferNb(0,buffer_nb,concat_frame_nb);
   tPvFrame& frame0 = m_frame[0];
-  frame0.ImageBuffer = (char*) m_buffer_cb_mgr.getBufferPtr(buffer_nb,
-							    concat_frame_nb);
-
-  m_buffer_cb_mgr.acqFrameNb2BufferNb(1,buffer_nb,concat_frame_nb);
-  tPvFrame& frame1 = m_frame[1];
-  frame1.ImageBuffer = (char*) m_buffer_cb_mgr.getBufferPtr(buffer_nb,
-							    concat_frame_nb);
+  frame0.ImageBuffer = (char*) m_buffer_cb_mgr.getFrameBufferPtr(0);
+  
+  int requested_nb_frames;
+  m_sync->getNbFrames(requested_nb_frames);
+  if(!requested_nb_frames || requested_nb_frames > 1)
+  {
+    tPvFrame& frame1 = m_frame[1];
+    frame1.ImageBuffer = (char*) m_buffer_cb_mgr.getFrameBufferPtr(1);
+  }
+  unsigned long FrameSize = 0;
+  if((PvAttrUint32Get(m_handle,"TotalBytesPerFrame",&FrameSize)) == ePvErrSuccess)
+    {
+      DEB_TRACE() << "Camera TotalBytesPerFrame: "<< FrameSize;
+      DEB_TRACE() << "Lima Frame size: " << dim.getMemSize();
+      DEB_TRACE() << "Lima buffer 0 ptr address: " << frame0.ImageBuffer;
+      DEB_TRACE() << "m_frame[0] ptr address: " << &frame0;
+    }
 }
 
 void BufferCtrlObj::startAcq()
@@ -41,16 +76,8 @@ void BufferCtrlObj::startAcq()
 
   m_exposing = true;
   tPvFrame& frame = m_frame[0];
-  m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
   
-/**  int requested_nb_frames;
-  m_sync->getNbFrames(requested_nb_frames);
-  if(!requested_nb_frames || requested_nb_frames > 1)
-    {
-      tPvFrame& frame = m_frame[1];
-      m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
-    }
-*/
+  m_status = PvCaptureQueueFrame(m_handle,&frame,_newFrame);
 }
 
 void BufferCtrlObj::_newFrame(tPvFrame* aFrame)

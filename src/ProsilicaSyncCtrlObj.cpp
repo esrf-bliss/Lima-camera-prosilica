@@ -1,3 +1,27 @@
+//###########################################################################
+// This file is part of LImA, a Library for Image Acquisition
+//
+// Copyright (C) : 2009-2023
+// European Synchrotron Radiation Facility
+// CS40220 38043 Grenoble Cedex 9
+// FRANCE
+//
+// Contact: lima@esrf.fr
+//
+// This is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, see <http://www.gnu.org/licenses/>.
+//###########################################################################
+
 #include <sstream>
 #include "ProsilicaSyncCtrlObj.h"
 #include "ProsilicaBufferCtrlObj.h"
@@ -17,6 +41,25 @@ SyncCtrlObj::SyncCtrlObj(Camera *cam,BufferCtrlObj *buffer) :
   DEB_CONSTRUCTOR();
   m_access_mode = cam->m_as_master ? 
     HwSyncCtrlObj::Master : HwSyncCtrlObj::Monitor;
+  
+  tPvErr error = PvAttrRangeFloat32(m_handle, "FrameRate", &m_minframerate, &m_maxframerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  FramRate range");
+  DEB_TRACE() << "Frame Rate Range :" << m_minframerate << " - " << m_maxframerate << " Hz";
+  
+  tPvUint32 min_exp, max_exp;
+  error = PvAttrRangeUint32(m_handle, "ExposureValue", &min_exp, &max_exp);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  Exposure range");
+  DEB_TRACE() << "Exposure Range :" << min_exp << " - " << max_exp << " usec.";
+  m_minexposure = min_exp/1e6;
+  m_maxexposure = max_exp/1e6;
+  
+  m_latency = 1/m_maxframerate - m_minexposure;
+  
+  error = PvAttrFloat32Set(m_handle, "FrameRate", m_maxframerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set FramRate to max");
 }
 
 SyncCtrlObj::~SyncCtrlObj()
@@ -32,6 +75,7 @@ bool SyncCtrlObj::checkTrigMode(TrigMode trig_mode)
   switch(trig_mode)
     {
     case IntTrig:
+    case IntTrigMult:
     case ExtTrigMult:
       return true;
     default:
@@ -57,8 +101,17 @@ void SyncCtrlObj::setTrigMode(TrigMode trig_mode)
 	  if(error)
 	    throw LIMA_HW_EXC(Error,"Can't change Trigger start to a rising edge");
 	  break;
-	default:		// Software
+	case IntTrig:
 	  error = PvAttrEnumSet(m_handle, "FrameStartTriggerMode", "FixedRate");
+	  if(error)
+	    {
+	      std::stringstream message;
+	      message << "could not set trigger mode to FixedRate " << error;
+	      throw LIMA_HW_EXC(Error,message.str().c_str());
+	    }
+	  break;
+	case IntTrigMult:
+	  error = PvAttrEnumSet(m_handle, "FrameStartTriggerMode", "Software");
 	  if(error)
 	    {
 	      std::stringstream message;
@@ -90,7 +143,17 @@ void SyncCtrlObj::setExpTime(double exp_time)
   tPvUint32 exposure_value = tPvUint32(exp_time * 1e6);
   error = PvAttrUint32Set(m_handle,"ExposureValue",exposure_value);
   if(error != ePvErrSuccess)
-    throw LIMA_HW_EXC(Error,"Can't set exposure time failed"); 
+    throw LIMA_HW_EXC(Error,"Can't set exposure time failed");
+
+  tPvFloat32 frame_rate = 1/( exp_time + m_latency);
+  DEB_TRACE() << frame_rate;
+  if (frame_rate < m_minframerate) frame_rate = m_minframerate;
+  else if (frame_rate > m_maxframerate) frame_rate = m_maxframerate;
+  
+  error = PvAttrFloat32Set(m_handle, "FrameRate", frame_rate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set FramRate");
+  m_exposure = exp_time;
 }
 
 void SyncCtrlObj::getExpTime(double &exp_time)
@@ -101,17 +164,19 @@ void SyncCtrlObj::getExpTime(double &exp_time)
   PvAttrUint32Get(m_handle, "ExposureValue", &exposure_value);
   exp_time = exposure_value / 1e6;
 
+  // update frame rate using expo_time + latency
+  
   DEB_RETURN() << DEB_VAR1(exp_time);
 }
 
 void SyncCtrlObj::setLatTime(double  lat_time)
 {
-  //No latency managed
+  m_latency = lat_time;
 }
 
 void SyncCtrlObj::getLatTime(double& lat_time)
 {
-  lat_time = 0.;		// Don't know
+  lat_time = m_latency;		// Don't know
 }
 
 void SyncCtrlObj::setNbFrames(int  nb_frames)
@@ -139,31 +204,44 @@ void SyncCtrlObj::getNbHwFrames(int& nb_frames)
 
 void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 {
-  valid_ranges.min_exp_time = 1e-6; // Don't know
-  valid_ranges.max_exp_time = 60.; // Don't know
-  valid_ranges.min_lat_time = 0.; // Don't know
-  valid_ranges.max_lat_time = 0.; // Don't know
+  // period = exposure + latency
+  // framerate = 1 / (exposure + latency)
+  // min_latency = (1 / max_framerate) -  min_exposure
+  // max_latency = (1 / min_framerate) -  min_exposure
+  valid_ranges.min_exp_time = m_minexposure;
+  valid_ranges.max_exp_time = m_maxexposure;
+  valid_ranges.min_lat_time = 1/m_maxframerate - m_minexposure;
+  valid_ranges.max_lat_time = 1/m_minframerate - m_minexposure;
 }
 
 void SyncCtrlObj::startAcq()
 {
   DEB_MEMBER_FUNCT();
+  
+  tPvErr error;
   if(!m_started)
     {
-      tPvErr error = PvCaptureStart(m_handle);
+      error = PvCaptureStart(m_handle);
       if(error)
 	throw LIMA_HW_EXC(Error,"Can't start acquisition capture");
+
+      if(m_buffer)
+	m_buffer->startAcq();
+      else
+	m_cam->startAcq();
+      
       if(m_cam->m_as_master)
 	{
 	  error = PvCommandRun(m_handle, "AcquisitionStart");
 	  if(error)
 	    throw LIMA_HW_EXC(Error,"Can't start acquisition");
-	}
-  
-      if(m_buffer)
-	m_buffer->startAcq();
-      else
-	m_cam->startAcq();
+	}  
+    }
+  if (m_trig_mode == IntTrigMult)
+    {
+      error = PvCommandRun(m_handle, "FrameStartTriggerSoftware");
+      if(error)
+	throw LIMA_HW_EXC(Error,"Can't start software trigger");
     }
   m_started = true;
 }
@@ -221,7 +299,10 @@ void SyncCtrlObj::getStatus(HwInterface::StatusType& status)
 	  else
 	    {
 	      status.acq = AcqRunning;
-	      status.det = exposing ? DetExposure : DetIdle;
+	      if (m_trig_mode == IntTrigMult)
+		status.det = exposing ? DetIdle : DetExposure;
+	      else
+		status.det = exposing ? DetExposure : DetIdle;
 	    }
 	}
       else			// video mode, don't need to be precise

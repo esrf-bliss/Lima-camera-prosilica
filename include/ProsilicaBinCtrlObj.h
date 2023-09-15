@@ -1,9 +1,9 @@
 //###########################################################################
 // This file is part of LImA, a Library for Image Acquisition
 //
-// Copyright (C) : 2009-2012
+// Copyright (C) : 2009-2023
 // European Synchrotron Radiation Facility
-// BP 220, Grenoble 38043
+// CS40220 38043 Grenoble Cedex 9
 // FRANCE
 //
 // This is free software; you can redistribute it and/or modify

@@ -31,7 +31,8 @@ SyncCtrlObj::SyncCtrlObj(Camera *cam,BufferCtrlObj *buffer) :
   m_minexposure = min_exp/1e6;
   m_maxexposure = max_exp/1e6;
   
-  m_latency = 1/m_maxframerate;
+  m_latency = 1/m_maxframerate - m_minexposure;
+  
   error = PvAttrFloat32Set(m_handle, "FrameRate", m_maxframerate);
   if(error)
     throw LIMA_HW_EXC(Error,"Can't set FramRate to max");
@@ -185,7 +186,7 @@ void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
   // max_latency = (1 / min_framerate) -  min_exposure
   valid_ranges.min_exp_time = m_minexposure;
   valid_ranges.max_exp_time = m_maxexposure;
-  valid_ranges.min_lat_time = 1/m_maxframerate ;
+  valid_ranges.min_lat_time = 1/m_maxframerate - m_minexposure;
   valid_ranges.max_lat_time = 1/m_minframerate - m_minexposure;
 }
 

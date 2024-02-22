@@ -1,7 +1,7 @@
 ###########################################################################
 # This file is part of LImA, a Library for Image Acquisition
 #
-#  Copyright (C) : 2009-2023
+#  Copyright (C) : 2009-2024
 #  European Synchrotron Radiation Facility
 #  CS40220 38043 Grenoble Cedex 9
 #  FRANCE
@@ -22,7 +22,7 @@
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 
 project(prosilica)
 
@@ -81,8 +81,9 @@ add_library(prosilica SHARED
   src/ProsilicaInterface.cpp
   src/ProsilicaDetInfoCtrlObj.cpp
   src/ProsilicaSyncCtrlObj.cpp
-  src/ProsilicaBinCtrlObj.cpp
   src/ProsilicaBufferCtrlObj.cpp
+  src/ProsilicaBinCtrlObj.cpp
+  src/ProsilicaRoiCtrlObj.cpp
   src/ProsilicaVideoCtrlObj.cpp
   ${PROSILICA_INCS}
 )

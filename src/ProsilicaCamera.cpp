@@ -43,6 +43,7 @@ Camera::Camera(const std::string& ip_addr,bool master,
   m_sync(NULL),
   m_video(NULL),
   m_bin(1,1),
+  m_roi(0,0,0,0),
   m_mono_forced(mono_forced)
 {
   DEB_CONSTRUCTOR();
@@ -85,18 +86,13 @@ Camera::Camera(const std::string& ip_addr,bool master,
 
   DEB_TRACE() << DEB_VAR2(m_maxwidth,m_maxheight);
 
-  Bin tmp_bin(1, 1);
   if(master)
     {
-      setBin(tmp_bin); // Bin has to be (1,1) for allowing maximum values as width and height
+      Bin tmp_bin(1, 1);
+      setBin(tmp_bin); // Bin has to be (1,1) for allowing maximum values
 
-      error = PvAttrUint32Set(m_handle,"Width",m_maxwidth);
-      if(error)
-	throw LIMA_HW_EXC(Error,"Can't set image width");
-
-      error = PvAttrUint32Set(m_handle,"Height",m_maxheight);
-      if(error)
-	throw LIMA_HW_EXC(Error,"Can't set image height");
+      Roi tmp_roi(0, 0, m_maxwidth, m_maxheight);
+      setRoi(tmp_roi);
 
       PvAttrRangeUint32(m_handle, "GainValue", &m_mingain, &m_maxgain);
 
@@ -346,7 +342,6 @@ void Camera::checkBin(Bin &hw_bin)
 {
     DEB_MEMBER_FUNCT();
 
-
     int x = hw_bin.getX();
     if(x > m_maxwidth)
         x = m_maxwidth;
@@ -394,6 +389,53 @@ void Camera::getBin(Bin &hw_bin)
     
     DEB_RETURN() << DEB_VAR1(hw_bin);
 }
+
+
+//-----------------------------------------------------
+// @brief range the Region-Of-Interest to the maximum allowed
+//-----------------------------------------------------
+void Camera::checkRoi(const Roi &set_roi, Roi &hw_roi)
+{
+  DEB_MEMBER_FUNCT();
+  DEB_PARAM() << DEB_VAR1(set_roi);
+  
+  // no limitation since Lima already checked limits, and camera supports any roi
+  hw_roi = set_roi;
+}
+
+//-----------------------------------------------------
+// @brief get the Roi
+//-----------------------------------------------------
+void Camera::getRoi(Roi &hw_roi)
+{
+  DEB_MEMBER_FUNCT();
+
+  hw_roi = m_roi;
+}
+
+//-----------------------------------------------------
+// @brief set the new Roi
+//-----------------------------------------------------
+void Camera::setRoi(const Roi& set_roi)
+{
+  DEB_MEMBER_FUNCT();
+  DEB_PARAM() << DEB_VAR1(set_roi);
+      
+  tPvUint32 x, y, width, height; 
+
+  x = set_roi.getTopLeft().x;
+  y = set_roi.getTopLeft().y;
+  width = set_roi.getSize().getWidth();
+  height = set_roi.getSize().getHeight();
+
+  PvAttrUint32Set(m_handle,"RegionX",x); 
+  PvAttrUint32Set(m_handle,"RegionY",y); 
+  PvAttrUint32Set(m_handle,"Width",width); 
+  PvAttrUint32Set(m_handle,"Height",height); 
+
+  m_roi = set_roi;
+}
+
 
 //-----------------------------------------------------
 // @brief set the new gain

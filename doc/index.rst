@@ -68,9 +68,9 @@ are supported by the SDK. Video and Binning are available.
 
   Use get/setMode() methods of the cpp::class::`Video` object (i.e. CtControl::video()) to read or set the format.
 
-* HwBin
+* HwBin & HwRoi
 
-  There is no restriction for the binning up to the maximum size.
+  There is no restriction for the binning up to the maximum size and for the Roi as well.
 
 Configuration
 ``````````````

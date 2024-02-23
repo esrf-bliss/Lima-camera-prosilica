@@ -420,13 +420,25 @@ void Camera::setRoi(const Roi& set_roi)
 {
   DEB_MEMBER_FUNCT();
   DEB_PARAM() << DEB_VAR1(set_roi);
-      
+  bool roi_is_active = set_roi.isActive();
+  DEB_PARAM() << DEB_VAR1(roi_is_active);
+
   tPvUint32 x, y, width, height; 
 
-  x = set_roi.getTopLeft().x;
-  y = set_roi.getTopLeft().y;
-  width = set_roi.getSize().getWidth();
-  height = set_roi.getSize().getHeight();
+  // Roi being reset <0,0,0x0>
+  if (!set_roi.isActive())
+  {
+    x = y =0;
+    width = m_maxwidth;
+    height = m_maxheight;
+  } 
+  else
+  {
+    x = set_roi.getTopLeft().x;
+    y = set_roi.getTopLeft().y;
+    width = set_roi.getSize().getWidth();
+    height = set_roi.getSize().getHeight();
+  }
 
   PvAttrUint32Set(m_handle,"RegionX",x); 
   PvAttrUint32Set(m_handle,"RegionY",y); 

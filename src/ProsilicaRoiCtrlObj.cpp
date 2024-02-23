@@ -24,13 +24,15 @@
 
 #include <sstream>
 #include "ProsilicaRoiCtrlObj.h"
+#include "ProsilicaSyncCtrlObj.h"
 #include "ProsilicaCamera.h"
 
 using namespace lima;
 using namespace lima::Prosilica;
 
-RoiCtrlObj::RoiCtrlObj(Camera* cam) :
-  m_cam(cam)
+RoiCtrlObj::RoiCtrlObj(Camera* cam, SyncCtrlObj* sync) :
+  m_cam(cam),
+  m_sync(sync)
 {
   DEB_CONSTRUCTOR();
 }
@@ -50,6 +52,10 @@ void RoiCtrlObj::setRoi(const Roi& roi)
   Roi real_roi;
   checkRoi(roi,real_roi);
   m_cam->setRoi(real_roi);
+
+  // force update of the timing ranges, to allow change on the frame rate
+  // A hw Roi can change the max. frame-rate
+  m_sync->updateValidRanges();
 }
 
 void RoiCtrlObj::getRoi(Roi& roi)

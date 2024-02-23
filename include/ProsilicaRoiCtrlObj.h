@@ -35,12 +35,13 @@ namespace lima
   namespace Prosilica
   {
     class Camera;
+    class SyncCtrlObj;
 
     class RoiCtrlObj : public HwRoiCtrlObj
     {
       DEB_CLASS_NAMESPC(DebModCamera,"RoiCtrlObj","Prosilica");
     public:
-      RoiCtrlObj(Camera* cam);
+      RoiCtrlObj(Camera* cam, SyncCtrlObj* sync);
       virtual ~RoiCtrlObj();
 
       virtual void setRoi(const Roi& set_roi);
@@ -48,6 +49,7 @@ namespace lima
       virtual void checkRoi(const Roi& set_roi, Roi& hw_roi);
     private:
       Camera*	m_cam;
+      SyncCtrlObj* m_sync;
     };
   } // namespace Prosilica
 } // namespace lima

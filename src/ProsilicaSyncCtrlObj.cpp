@@ -42,22 +42,10 @@ SyncCtrlObj::SyncCtrlObj(Camera *cam,BufferCtrlObj *buffer) :
   m_access_mode = cam->m_as_master ? 
     HwSyncCtrlObj::Master : HwSyncCtrlObj::Monitor;
   
-  tPvErr error = PvAttrRangeFloat32(m_handle, "FrameRate", &m_minframerate, &m_maxframerate);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't get  FramRate range");
-  DEB_TRACE() << "Frame Rate Range :" << m_minframerate << " - " << m_maxframerate << " Hz";
-  
-  tPvUint32 min_exp, max_exp;
-  error = PvAttrRangeUint32(m_handle, "ExposureValue", &min_exp, &max_exp);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't get  Exposure range");
-  DEB_TRACE() << "Exposure Range :" << min_exp << " - " << max_exp << " usec.";
-  m_minexposure = min_exp/1e6;
-  m_maxexposure = max_exp/1e6;
-  
-  m_latency = 1/m_maxframerate - m_minexposure;
-  
-  error = PvAttrFloat32Set(m_handle, "FrameRate", m_maxframerate);
+  updateValidRanges(true);
+
+  // init the camera with upper frame rate
+  tPvErr error = PvAttrFloat32Set(m_handle, "FrameRate", m_maxframerate);
   if(error)
     throw LIMA_HW_EXC(Error,"Can't set FramRate to max");
 }
@@ -131,29 +119,72 @@ void SyncCtrlObj::getTrigMode(TrigMode &trig_mode)
   trig_mode = m_trig_mode;
 }
 
+void SyncCtrlObj::updateValidRanges(bool force_init)
+{
+  DEB_MEMBER_FUNCT();
+  // force rereading of the frame-rate range and adjust the timing ranges
+  tPvErr error = PvAttrRangeFloat32(m_handle, "FrameRate", &m_minframerate, &m_maxframerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  FramRate range");
+  DEB_TRACE() << "Frame Rate Range :" << m_minframerate << " - " << m_maxframerate << " Hz";
+  
+  tPvUint32 min_exp, max_exp;
+  error = PvAttrRangeUint32(m_handle, "ExposureValue", &min_exp, &max_exp);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  Exposure range");
+  DEB_TRACE() << "Exposure Range :" << min_exp << " - " << max_exp << " usec.";
+  m_minexposure = min_exp/1e6;
+  m_maxexposure = max_exp/1e6;
+  
+  if (force_init)
+  {
+    double exposure;
+    getExpTime(exposure);
+    m_exposure = exposure;
+    m_latency = 1/m_maxframerate - m_minexposure;
+    m_max_acq_period = 1.0 / m_minframerate;
+  }
+  m_valid_ranges.min_exp_time = m_minexposure;
+  m_valid_ranges.max_exp_time = m_maxexposure;
+  m_valid_ranges.min_lat_time = 1/m_maxframerate - m_minexposure;
+  m_valid_ranges.max_lat_time = 1/m_minframerate - m_minexposure;
+
+  // always force CtAcquisition to update its cache
+  validRangesChanged(m_valid_ranges);
+
+}
+
+void SyncCtrlObj::adjustFrameRate()
+{
+  DEB_MEMBER_FUNCT();
+
+  DEB_PARAM() << DEB_VAR2(m_exposure, m_latency);
+  tPvFloat32 frame_rate = 1/ (m_exposure + m_latency);
+
+  tPvErr error = PvAttrFloat32Set(m_handle, "FrameRate", frame_rate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't set FramRate");
+}
 void SyncCtrlObj::setExpTime(double exp_time)
 {
   DEB_MEMBER_FUNCT();
   DEB_PARAM() << DEB_VAR1(exp_time);
 
+  m_exposure = exp_time;
+  adjustFrameRate();
+
+
   tPvErr error = PvAttrEnumSet(m_handle, "ExposureMode", "Manual");
   if(error != ePvErrSuccess)
     throw LIMA_HW_EXC(Error,"Can't set manual exposure");
-
   tPvUint32 exposure_value = tPvUint32(exp_time * 1e6);
   error = PvAttrUint32Set(m_handle,"ExposureValue",exposure_value);
   if(error != ePvErrSuccess)
     throw LIMA_HW_EXC(Error,"Can't set exposure time failed");
 
-  tPvFloat32 frame_rate = 1/( exp_time + m_latency);
-  DEB_TRACE() << frame_rate;
-  if (frame_rate < m_minframerate) frame_rate = m_minframerate;
-  else if (frame_rate > m_maxframerate) frame_rate = m_maxframerate;
-  
-  error = PvAttrFloat32Set(m_handle, "FrameRate", frame_rate);
-  if(error)
-    throw LIMA_HW_EXC(Error,"Can't set FramRate");
-  m_exposure = exp_time;
+
+  m_valid_ranges.max_lat_time = m_max_acq_period - m_exposure;
+  validRangesChanged(m_valid_ranges);
 }
 
 void SyncCtrlObj::getExpTime(double &exp_time)
@@ -163,15 +194,20 @@ void SyncCtrlObj::getExpTime(double &exp_time)
   tPvUint32 exposure_value;
   PvAttrUint32Get(m_handle, "ExposureValue", &exposure_value);
   exp_time = exposure_value / 1e6;
-
-  // update frame rate using expo_time + latency
   
   DEB_RETURN() << DEB_VAR1(exp_time);
 }
 
 void SyncCtrlObj::setLatTime(double  lat_time)
 {
+  DEB_MEMBER_FUNCT();
+  DEB_PARAM() << DEB_VAR1(lat_time);
+
   m_latency = lat_time;
+  adjustFrameRate();
+
+  m_valid_ranges.max_exp_time = m_max_acq_period - m_latency;
+  validRangesChanged(m_valid_ranges);
 }
 
 void SyncCtrlObj::getLatTime(double& lat_time)
@@ -204,14 +240,9 @@ void SyncCtrlObj::getNbHwFrames(int& nb_frames)
 
 void SyncCtrlObj::getValidRanges(ValidRangesType& valid_ranges)
 {
-  // period = exposure + latency
-  // framerate = 1 / (exposure + latency)
-  // min_latency = (1 / max_framerate) -  min_exposure
-  // max_latency = (1 / min_framerate) -  min_exposure
-  valid_ranges.min_exp_time = m_minexposure;
-  valid_ranges.max_exp_time = m_maxexposure;
-  valid_ranges.min_lat_time = 1/m_maxframerate - m_minexposure;
-  valid_ranges.max_lat_time = 1/m_minframerate - m_minexposure;
+  DEB_MEMBER_FUNCT();
+
+  valid_ranges = m_valid_ranges;
 }
 
 void SyncCtrlObj::startAcq()

@@ -55,8 +55,8 @@ Interface::Interface(Camera *cam) :
   m_sync = new SyncCtrlObj(cam,m_video ? NULL : m_buffer);
   cam->m_sync = m_sync;
 
-  m_bin = new BinCtrlObj(cam);
-  m_roi = new RoiCtrlObj(cam);
+  m_bin = new BinCtrlObj(cam, m_sync);
+  m_roi = new RoiCtrlObj(cam, m_sync);
 
   if(m_buffer)
     m_buffer->m_sync = m_sync;

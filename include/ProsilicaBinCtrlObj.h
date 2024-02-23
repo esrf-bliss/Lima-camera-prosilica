@@ -1,7 +1,7 @@
 //###########################################################################
 // This file is part of LImA, a Library for Image Acquisition
 //
-// Copyright (C) : 2009-2023
+// Copyright (C) : 2009-2024
 // European Synchrotron Radiation Facility
 // CS40220 38043 Grenoble Cedex 9
 // FRANCE
@@ -23,12 +23,14 @@
 #define PROSILICABINCTRLOBJ_H
 
 #include "lima/HwInterface.h"
-#include "ProsilicaCamera.h"
 
 namespace lima
 {
     namespace Prosilica
     {
+    class Camera;
+    class SyncCtrlObj;
+	
 /*******************************************************************
  * \class BinCtrlObj
  * \brief Control object providing Prosilica Bin interface
@@ -37,7 +39,7 @@ namespace lima
 	{
 	    DEB_CLASS_NAMESPC(DebModCamera, "BinCtrlObj", "Prosilica");
 	  public:
-	    BinCtrlObj(Camera* cam);
+	    BinCtrlObj(Camera* cam, SyncCtrlObj* sync);
 	    virtual ~BinCtrlObj() {}
 	    
 	    virtual void setBin(const Bin& bin);
@@ -45,7 +47,8 @@ namespace lima
 	    //allow all binning
 	    virtual void checkBin(Bin& bin);
 	  private:  
-	    Camera *m_cam; 
+	    Camera *m_cam;
+		SyncCtrlObj *m_sync;
 
 	};
     

@@ -1,7 +1,7 @@
 //###########################################################################
 // This file is part of LImA, a Library for Image Acquisition
 //
-// Copyright (C) : 2009-2023
+// Copyright (C) : 2009-2024
 // European Synchrotron Radiation Facility
 // CS40220 38043 Grenoble Cedex 9
 // FRANCE
@@ -446,6 +446,13 @@ void Camera::setRoi(const Roi& set_roi)
   PvAttrUint32Set(m_handle,"Height",height); 
 
   m_roi = set_roi;
+
+  tPvFloat32 min_framerate, max_framerate;
+  tPvErr error = PvAttrRangeFloat32(m_handle, "FrameRate", &min_framerate, &max_framerate);
+  if(error)
+    throw LIMA_HW_EXC(Error,"Can't get  FramRate range");
+  DEB_TRACE() << "Frame Rate Range :" << min_framerate << " - " << max_framerate << " Hz";
+
 }
 
 

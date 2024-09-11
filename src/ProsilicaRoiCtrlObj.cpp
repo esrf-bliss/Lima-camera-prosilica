@@ -3,8 +3,10 @@
 //
 // Copyright (C) : 2009-2024
 // European Synchrotron Radiation Facility
-// CS40220 38043 Grenoble Cedex 9
+// CS40220 38043 Grenoble Cedex 9 
 // FRANCE
+//
+// Contact: lima@esrf.fr
 //
 // This is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,40 +21,45 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
-#ifndef PROSILICABINCTRLOBJ_H
-#define PROSILICABINCTRLOBJ_H
 
-#include "lima/HwInterface.h"
+#include <sstream>
+#include "ProsilicaRoiCtrlObj.h"
+#include "ProsilicaSyncCtrlObj.h"
+#include "ProsilicaCamera.h"
 
-namespace lima
+using namespace lima;
+using namespace lima::Prosilica;
+
+RoiCtrlObj::RoiCtrlObj(Camera* cam, SyncCtrlObj* sync) :
+  m_cam(cam),
+  m_sync(sync)
 {
-    namespace Prosilica
-    {
-    class Camera;
-    class SyncCtrlObj;
-	
-/*******************************************************************
- * \class BinCtrlObj
- * \brief Control object providing Prosilica Bin interface
- *******************************************************************/
-	class BinCtrlObj : public HwBinCtrlObj
-	{
-	    DEB_CLASS_NAMESPC(DebModCamera, "BinCtrlObj", "Prosilica");
-	  public:
-	    BinCtrlObj(Camera* cam, SyncCtrlObj* sync);
-	    virtual ~BinCtrlObj() {}
-	    
-	    virtual void setBin(const Bin& bin);
-	    virtual void getBin(Bin& bin);
-	    //allow all binning
-	    virtual void checkBin(Bin& bin);
-	  private:  
-	    Camera *m_cam;
-		SyncCtrlObj *m_sync;
+  DEB_CONSTRUCTOR();
+}
 
-	};
-    
-    } // namespace Prosilica
-} // namespace lima
+RoiCtrlObj::~RoiCtrlObj()
+{
+}
+void RoiCtrlObj::checkRoi(const Roi& set_roi, Roi& hw_roi)
+{
+  DEB_MEMBER_FUNCT();
+  m_cam->checkRoi(set_roi, hw_roi);
+}
 
-#endif // PROSILICABINCTRLOBJ_H
+void RoiCtrlObj::setRoi(const Roi& roi)
+{
+  DEB_MEMBER_FUNCT();
+  Roi real_roi;
+  checkRoi(roi,real_roi);
+  m_cam->setRoi(real_roi);
+
+  // force update of the timing ranges, to allow change on the frame rate
+  // A hw Roi can change the max. frame-rate
+  m_sync->updateValidRanges();
+}
+
+void RoiCtrlObj::getRoi(Roi& roi)
+{
+  DEB_MEMBER_FUNCT();
+  m_cam->getRoi(roi);
+}

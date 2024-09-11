@@ -67,6 +67,9 @@ namespace lima
       
       void getStatus(HwInterface::StatusType&);
 
+      void updateValidRanges(bool force_init=false);
+      void adjustFrameRate();
+
     private:
       Camera*		m_cam;
       tPvHandle&	m_handle;
@@ -80,6 +83,8 @@ namespace lima
       tPvFloat32	m_maxframerate;
       tPvFloat32	m_exposure;
       tPvFloat32	m_latency;
+      ValidRangesType m_valid_ranges;
+      double m_max_acq_period;
     };
 
   } // namespace Prosilica

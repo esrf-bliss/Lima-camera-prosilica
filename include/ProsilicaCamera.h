@@ -57,6 +57,10 @@ namespace lima
       void setBin(const Bin&);
       void getBin(Bin&);
 
+      void checkRoi(const Roi& set_roi, Roi& hw_roi);
+      void setRoi(const Roi&);
+      void getRoi(Roi&);
+      
       void setGain(double);
       void getGain(double&) const;
       void setPvGain(unsigned long);
@@ -86,7 +90,8 @@ namespace lima
       
       tPvUint32		m_uid;
       tPvFrame		m_frame[2];
-      Bin               m_bin;
+      Bin         m_bin;
+      Roi         m_roi;
       
       SyncCtrlObj*	m_sync;
       VideoCtrlObj*	m_video;

@@ -1,9 +1,9 @@
 //###########################################################################
 // This file is part of LImA, a Library for Image Acquisition
 //
-// Copyright (C) : 2009-2023
+// Copyright (C) : 2009-2024
 // European Synchrotron Radiation Facility
-// CS40220 38043 Grenoble Cedex 9
+// CS40220 38043 Grenoble Cedex 9 
 // FRANCE
 //
 // Contact: lima@esrf.fr
@@ -22,9 +22,12 @@
 // along with this program; if not, see <http://www.gnu.org/licenses/>.
 //###########################################################################
 
-#ifndef PROSILICAINTERFACE_H
-#define PROSILICAINTERFACE_H
+#ifndef PROSILICAROICTRLOBJ_H
+#define PROSILICAROICTRLOBJ_H
 
+#include <prosilica_export.h>
+
+#include "lima/HwRoiCtrlObj.h"
 #include "lima/HwInterface.h"
 
 namespace lima
@@ -32,43 +35,23 @@ namespace lima
   namespace Prosilica
   {
     class Camera;
-    class DetInfoCtrlObj;
-    class BufferCtrlObj;
-    class VideoCtrlObj;
     class SyncCtrlObj;
-    class BinCtrlObj;
-    class RoiCtrlObj;
 
-    class Interface : public HwInterface
+    class RoiCtrlObj : public HwRoiCtrlObj
     {
-      DEB_CLASS_NAMESPC(DebModCamera, "Interface", "Prosilica");
-
+      DEB_CLASS_NAMESPC(DebModCamera,"RoiCtrlObj","Prosilica");
     public:
-      Interface(Camera*);
-      virtual ~Interface();
+      RoiCtrlObj(Camera* cam, SyncCtrlObj* sync);
+      virtual ~RoiCtrlObj();
 
-      virtual void getCapList(CapList &) const;
-
-      virtual void reset(ResetLevel reset_level);
-      virtual void prepareAcq();
-      virtual void startAcq();
-      virtual void stopAcq();
-      virtual void getStatus(StatusType& status);
-
-      virtual int getNbAcquiredFrames();
-      virtual int getNbHwAcquiredFrames();
+      virtual void setRoi(const Roi& set_roi);
+      virtual void getRoi(Roi& hw_roi);
+      virtual void checkRoi(const Roi& set_roi, Roi& hw_roi);
     private:
-      Camera* 		m_cam;
-      DetInfoCtrlObj* 	m_det_info;
-      BufferCtrlObj* 	m_buffer;
-      VideoCtrlObj* 	m_video;
-      SyncCtrlObj* 	m_sync;
-      BinCtrlObj*   m_bin;
-      RoiCtrlObj*   m_roi;
+      Camera*	m_cam;
+      SyncCtrlObj* m_sync;
     };
-
   } // namespace Prosilica
-
 } // namespace lima
 
-#endif // PROSILICAINTERFACE_H
+#endif // ProsilicaROICTRLOBJ_H

@@ -23,6 +23,8 @@
 //###########################################################################
 
 #include "ProsilicaBinCtrlObj.h"
+#include "ProsilicaSyncCtrlObj.h"
+#include "ProsilicaCamera.h"
 
 using namespace lima;
 using namespace lima::Prosilica;
@@ -32,8 +34,9 @@ using namespace std;
 //-----------------------------------------------------
 // @brief
 //-----------------------------------------------------
-BinCtrlObj::BinCtrlObj(Camera *cam) :
-  m_cam(cam)
+BinCtrlObj::BinCtrlObj(Camera *cam, SyncCtrlObj *sync) :
+  m_cam(cam),
+  m_sync(sync)
 {
     DEB_CONSTRUCTOR();
 }
@@ -44,6 +47,9 @@ void BinCtrlObj::setBin(const Bin& aBin)
    
     m_cam->setBin(aBin);
 
+    // force update of the timing ranges, to allow change on the frame rate
+    // A hw Roi can change the max. frame-rate
+    m_sync->updateValidRanges();
 }
 
 //-----------------------------------------------------
@@ -53,7 +59,6 @@ void BinCtrlObj::getBin(Bin &aBin)
 {
     DEB_MEMBER_FUNCT();    
     m_cam->getBin(aBin);  
-
 }
 
 //-----------------------------------------------------

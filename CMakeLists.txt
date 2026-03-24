@@ -122,7 +122,7 @@ endif()
 
 # Binding code for python
 if(LIMA_ENABLE_PYTHON)
-  limatools_run_sip_for_camera(prosilica 3)
+  limatools_run_sip_for_camera(prosilica 1)
 endif()
 
 # Generate and install package config file and version

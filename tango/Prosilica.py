@@ -1,7 +1,7 @@
 ############################################################################
 # This file is part of LImA, a Library for Image Acquisition
 #
-# Copyright (C) : 2009-2023
+# Copyright (C) : 2009-2026
 # European Synchrotron Radiation Facility
 # CS40220 38043 Grenoble Cedex 9
 # FRANCE
@@ -42,21 +42,21 @@
 #=============================================================================
 #
 import PyTango
-from Lima import Core
+from Lima import core
 from Lima import Prosilica as ProsilicaAcq
 from Lima.Server import AttrHelper
 
 
-class Prosilica(PyTango.Device_4Impl):
+class Prosilica(PyTango.LatestDeviceImpl):
 
-    Core.DEB_CLASS(Core.DebModApplication, 'LimaCCDs')
+    core.DEB_CLASS(core.DebModule.DebModApplication, 'LimaCCDs')
 
 
 #------------------------------------------------------------------
 #    Device constructor
 #------------------------------------------------------------------
     def __init__(self,*args) :
-        PyTango.Device_4Impl.__init__(self,*args)
+        PyTango.LatestDeviceImpl.__init__(self,*args)
 
         self.init_device()
 
@@ -69,12 +69,12 @@ class Prosilica(PyTango.Device_4Impl):
 #------------------------------------------------------------------
 #    Device initialization
 #------------------------------------------------------------------
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def init_device(self):
         self.set_state(PyTango.DevState.ON)
         self.get_device_properties(self.get_device_class())
 
-    @Core.DEB_MEMBER_FUNCT
+    @core.DEB_MEMBER_FUNCT
     def getAttrStringValueList(self, attr_name):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
@@ -146,7 +146,7 @@ def get_control(cam_ip_address = "0",**keys) :
     if _ProsilicaCam is None:
         _ProsilicaCam = ProsilicaAcq.Camera(cam_ip_address)
         _ProsilicaInterface = ProsilicaAcq.Interface(_ProsilicaCam)
-    return Core.CtControl(_ProsilicaInterface)
+    return core.CtControl(_ProsilicaInterface)
 
 def get_tango_specific_class_n_device():
     return ProsilicaClass,Prosilica

@@ -41,112 +41,105 @@
 #         (c) - Bliss - ESRF
 #=============================================================================
 #
-import PyTango
+from tango import AttrWriteType
+from tango.server import Device, attribute, command, device_property
+
 from lima import core
 from lima import prosilica as ProsilicaAcq
 from lima.server import AttrHelper
 
 
-class Prosilica(PyTango.LatestDeviceImpl):
+class Prosilica(Device):
 
     core.DEB_CLASS(core.DebModule.DebModApplication, 'LimaCCDs')
 
+    # ------------------------------------------------------------------
+    #    Static properties
+    # ------------------------------------------------------------------
+    _ProsilicaCam = None
+    """Reference to Lima prosilica camera binding"""
+    _ProsilicaInterface = None
+    """Reference to Lima prosilica interface binding"""
 
-#------------------------------------------------------------------
-#    Device constructor
-#------------------------------------------------------------------
-    def __init__(self,*args) :
-        PyTango.LatestDeviceImpl.__init__(self,*args)
+    # ------------------------------------------------------------------
+    #    Device properties
+    # ------------------------------------------------------------------
+    cam_ip_address = device_property(dtype=str, doc="Camera ip address")
 
-        self.init_device()
-
-#------------------------------------------------------------------
-#    Device destructor
-#------------------------------------------------------------------
-    def delete_device(self):
-        pass
-
-#------------------------------------------------------------------
-#    Device initialization
-#------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    #    Device initialization
+    # ------------------------------------------------------------------
     @core.DEB_MEMBER_FUNCT
     def init_device(self):
-        self.set_state(PyTango.DevState.ON)
-        self.get_device_properties(self.get_device_class())
+        Device.init_device(self)
 
+    # ------------------------------------------------------------------
+    #    Commands
+    # ------------------------------------------------------------------
+    @command(dtype_in=str, doc_in="Attribute name",
+              dtype_out=(str,), doc_out="Authorized String value list")
     @core.DEB_MEMBER_FUNCT
     def getAttrStringValueList(self, attr_name):
         return AttrHelper.get_attr_string_value_list(self, attr_name)
 
-    def __getattr__(self,name) :
-        return AttrHelper.get_attr_4u(self, name, _ProsilicaCam)
+    # ------------------------------------------------------------------
+    #    Attributes fully dispatched by naming convention
+    # ------------------------------------------------------------------
+    _pv_gain_range_fget, _ = AttrHelper.make_fget_fset(
+        "pv_gain_range", lambda self: self._ProsilicaCam
+    )
+    pv_gain_range = attribute(
+        dtype=(int,),
+        max_dim_x=2,
+        access=AttrWriteType.READ,
+        unit="N/A",
+        doc="Camera min/max gain value (PvApi)",
+        fget=_pv_gain_range_fget,
+    )
 
+    _gain_fget, _gain_fset = AttrHelper.make_fget_fset(
+        "gain", lambda self: self._ProsilicaCam
+    )
+    gain = attribute(
+        dtype=float,
+        access=AttrWriteType.READ_WRITE,
+        unit="N/A",
+        doc="Camera gain",
+        fget=_gain_fget,
+        fset=_gain_fset,
+    )
 
-class ProsilicaClass(PyTango.DeviceClass):
+    _pv_gain_fget, _pv_gain_fset = AttrHelper.make_fget_fset(
+        "pv_gain", lambda self: self._ProsilicaCam
+    )
+    pv_gain = attribute(
+        dtype=int,
+        access=AttrWriteType.READ_WRITE,
+        unit="N/A",
+        doc="Camera PvApi gain",
+        fget=_pv_gain_fget,
+        fset=_pv_gain_fset,
+    )
 
-    class_property_list = {}
-
-    device_property_list = {
-        'cam_ip_address':
-        [PyTango.DevString,
-         "Camera ip address",[]],
-        }
-
-    cmd_list = {
-        'getAttrStringValueList':
-        [[PyTango.DevString, "Attribute name"],
-         [PyTango.DevVarStringArray, "Authorized String value list"]],
-        }
-
-    attr_list = {
-        'pv_gain_range':
-        [[PyTango.DevULong,
-          PyTango.SPECTRUM,
-          PyTango.READ,
-          2],
-         {
-             'unit': 'N/A',
-             'format': '',
-             'description': 'camera min/max gain value (PvApi)',
-         }],
-        'gain':
-        [[PyTango.DevFloat,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE],
-         {
-             'unit': 'N/A',
-             'format': '',
-             'description': 'camera gain',
-         }],
-        'pv_gain':
-        [[PyTango.DevULong,
-          PyTango.SCALAR,
-          PyTango.READ_WRITE],
-         {
-             'unit': 'N/A',
-             'format': '',
-             'description': 'camera PvApi gain',
-         }],
-    }
-
-    def __init__(self,name) :
-        PyTango.DeviceClass.__init__(self,name)
-        self.set_type(name)
 
 #----------------------------------------------------------------------------
 # Plugins
 #----------------------------------------------------------------------------
-_ProsilicaCam = None
-_ProsilicaInterface = None
 
-def get_control(cam_ip_address = "0",**keys) :
-    print ("cam_ip_address",cam_ip_address)
-    global _ProsilicaCam
-    global _ProsilicaInterface
-    if _ProsilicaCam is None:
-        _ProsilicaCam = ProsilicaAcq.Camera(cam_ip_address)
-        _ProsilicaInterface = ProsilicaAcq.Interface(_ProsilicaCam)
-    return core.CtControl(_ProsilicaInterface)
+def get_control(cam_ip_address="0", _Prosilica=Prosilica, _Camera=ProsilicaAcq.Camera,
+                 _Interface=ProsilicaAcq.Interface, **keys):
+    print("cam_ip_address", cam_ip_address)
+    camera = _Prosilica._ProsilicaCam
+    interface = _Prosilica._ProsilicaInterface
+
+    if camera is None:
+        camera = _Camera(cam_ip_address)
+        interface = _Interface(camera)
+        _Prosilica._ProsilicaCam = camera
+        _Prosilica._ProsilicaInterface = interface
+
+    return core.CtControl(interface)
+
 
 def get_tango_specific_class_n_device():
-    return ProsilicaClass,Prosilica
+    return Prosilica.TangoClassClass, Prosilica
